@@ -12,3 +12,11 @@ export type Ejercicio = {
   grupoMuscular: string;
   historialPesos: HistorialPeso[];
 };
+
+export type Carrera = {
+  idCarrera: string;
+  fecha: string;
+  distanciaKm: number;
+  duracionMin: number;
+  ritmoPorKm: string;
+};

@@ -21,6 +21,13 @@ export default function Home() {
             gradient="from-red-500 to-rose-600"
             icon={<span className="text-3xl">🏋️</span>}
           />
+          <AppCard
+            name="Running"
+            description="Registro de carreras"
+            href="/running"
+            gradient="from-emerald-500 to-green-600"
+            icon={<span className="text-3xl">🏃</span>}
+          />
         </div>
       </main>
     </div>
