@@ -1,4 +1,5 @@
 import { AppCard } from "@/app/app-card";
+import { MuscleGroupIcon } from "@/app/muscle-group-icon";
 
 export default function Home() {
   return (
@@ -19,11 +20,7 @@ export default function Home() {
             description="Seguimiento de ejercicios"
             href="/liftlog"
             gradient="from-red-500 to-rose-600"
-            icon={
-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-8 h-8 text-white">
-                <path d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2zm1 13h-2v-2h2zm0-4h-2V7h2z" />
-              </svg>
-            }
+            icon={<MuscleGroupIcon type="chest" />}
           />
         </div>
       </main>
