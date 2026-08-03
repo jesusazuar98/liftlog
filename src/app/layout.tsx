@@ -15,8 +15,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "LiftLog",
-  description: "Tu aplicación de seguimiento de ejercicios",
+  title: "MyApps",
+  description: "Tus aplicaciones personales en un solo lugar",
 };
 
 export const viewport: Viewport = {

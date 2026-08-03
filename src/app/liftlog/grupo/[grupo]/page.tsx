@@ -138,13 +138,13 @@ export default function GrupoPage() {
     <div className="flex flex-col min-h-screen bg-white dark:bg-black p-4 sm:p-6">
       <header className="pt-12 pb-8">
         <Link
-          href="/"
+          href="/liftlog"
           className="inline-flex items-center gap-2 text-sm text-zinc-500 dark:text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 transition-colors mb-4"
         >
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4">
             <path fillRule="evenodd" d="M7.72 12.53a.75.75 0 010-1.06l7.5-7.5a.75.75 0 111.06 1.06L9.31 12l6.97 6.97a.75.75 0 11-1.06 1.06l-7.5-7.5z" clipRule="evenodd" />
           </svg>
-          Volver
+          Volver a LiftLog
         </Link>
         <h1 className="text-3xl sm:text-4xl font-bold text-black dark:text-white">
           {nombreGrupo}
