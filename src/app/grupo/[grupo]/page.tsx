@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import { Ejercicio, HistorialPeso } from "@/types";
 
 const muscleGroupNames: Record<string, string> = {
@@ -295,6 +296,60 @@ export default function GrupoPage() {
             <p className="text-sm text-zinc-500 dark:text-zinc-400 mb-6">
               Historial de pesos
             </p>
+            {ejercicioHistorial.historialPesos.length > 1 && (
+              <div className="mb-6">
+                <div className="h-48 w-full">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <LineChart
+                      data={ejercicioHistorial.historialPesos.map((r) => ({
+                        fecha: new Date(r.fecha + "T00:00:00").toLocaleDateString("es-ES", {
+                          day: "2-digit",
+                          month: "short",
+                        }),
+                        peso: r.peso,
+                      }))}
+                      margin={{ top: 5, right: 10, left: -20, bottom: 0 }}
+                    >
+                      <CartesianGrid strokeDasharray="3 3" stroke="#e4e4e7" className="dark:stroke-zinc-700" />
+                      <XAxis
+                        dataKey="fecha"
+                        tick={{ fontSize: 11, fill: "#71717a" }}
+                        stroke="#a1a1aa"
+                        tickLine={false}
+                        axisLine={false}
+                      />
+                      <YAxis
+                        tick={{ fontSize: 11, fill: "#71717a" }}
+                        stroke="#a1a1aa"
+                        tickLine={false}
+                        axisLine={false}
+                        domain={["auto", "auto"]}
+                        tickFormatter={(value) => `${value}kg`}
+                      />
+                      <Tooltip
+                        contentStyle={{
+                          backgroundColor: "var(--background)",
+                          border: "1px solid #e4e4e7",
+                          borderRadius: "12px",
+                          fontSize: "12px",
+                          color: "var(--foreground)",
+                        }}
+                        formatter={(value) => [`${value ?? 0} kg`, "Peso"]}
+                        labelStyle={{ color: "#71717a", fontWeight: 500 }}
+                      />
+                      <Line
+                        type="monotone"
+                        dataKey="peso"
+                        stroke="#3b82f6"
+                        strokeWidth={2.5}
+                        dot={{ r: 4, fill: "#3b82f6", strokeWidth: 2, stroke: "#fff" }}
+                        activeDot={{ r: 6 }}
+                      />
+                    </LineChart>
+                  </ResponsiveContainer>
+                </div>
+              </div>
+            )}
             <div className="max-h-80 overflow-y-auto space-y-3">
               {[...ejercicioHistorial.historialPesos].reverse().map((registro, index) => (
                 <div
