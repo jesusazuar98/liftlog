@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
-import { Ejercicio } from "@/types";
+import { Ejercicio, HistorialPeso } from "@/types";
 
 const muscleGroupNames: Record<string, string> = {
   chest: "Pecho",
@@ -22,16 +22,24 @@ export default function GrupoPage() {
   const [showModal, setShowModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [showHistoryModal, setShowHistoryModal] = useState(false);
+  const [ejercicioHistorial, setEjercicioHistorial] = useState<Ejercicio | null>(null);
   const [ejercicioAEliminar, setEjercicioAEliminar] = useState<string | null>(null);
   const [ejercicioEditar, setEjercicioEditar] = useState<Ejercicio | null>(null);
   const [nombre, setNombre] = useState("");
   const [peso, setPeso] = useState("");
   const [repeticiones, setRepeticiones] = useState("");
+  const [busqueda, setBusqueda] = useState("");
 
   useEffect(() => {
     const stored = localStorage.getItem("ejercicios");
     if (stored) {
-      setEjercicios(JSON.parse(stored));
+      const parsed: Ejercicio[] = JSON.parse(stored);
+      const migrados = parsed.map((e) => ({
+        ...e,
+        historialPesos: e.historialPesos || [{ fecha: new Date().toISOString().split("T")[0], peso: e.peso, repeticiones: e.repeticiones }],
+      }));
+      setEjercicios(migrados);
     }
   }, []);
 
@@ -40,20 +48,31 @@ export default function GrupoPage() {
     localStorage.setItem("ejercicios", JSON.stringify(nuevos));
   };
 
+  const hoy = () => new Date().toISOString().split("T")[0];
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    const pesoNum = parseFloat(peso);
+    const repsNum = parseInt(repeticiones);
+    const fechaHoy = hoy();
     const nuevo: Ejercicio = {
       idEjercicio: Date.now().toString(),
       nombreEjercicio: nombre,
-      peso: parseFloat(peso),
-      repeticiones: parseInt(repeticiones),
+      peso: pesoNum,
+      repeticiones: repsNum,
       grupoMuscular: grupo,
+      historialPesos: [{ fecha: fechaHoy, peso: pesoNum, repeticiones: repsNum }],
     };
     guardarEjercicios([...ejercicios, nuevo]);
     setNombre("");
     setPeso("");
     setRepeticiones("");
     setShowModal(false);
+  };
+
+  const abrirHistorial = (ejercicio: Ejercicio) => {
+    setEjercicioHistorial(ejercicio);
+    setShowHistoryModal(true);
   };
 
   const abrirEditar = (ejercicio: Ejercicio) => {
@@ -67,12 +86,24 @@ export default function GrupoPage() {
   const handleEditSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!ejercicioEditar) return;
+    const pesoNum = parseFloat(peso);
+    const repsNum = parseInt(repeticiones);
+    const fechaHoy = hoy();
+    const historialActual = ejercicioEditar.historialPesos || [];
+    const ultimoRegistro = historialActual.length > 0 ? historialActual[historialActual.length - 1] : null;
+    let nuevoHistorial: HistorialPeso[];
+    if (ultimoRegistro && ultimoRegistro.fecha === fechaHoy) {
+      nuevoHistorial = [...historialActual.slice(0, -1), { fecha: fechaHoy, peso: pesoNum, repeticiones: repsNum }];
+    } else {
+      nuevoHistorial = [...historialActual, { fecha: fechaHoy, peso: pesoNum, repeticiones: repsNum }];
+    }
     const actualizado: Ejercicio = {
       idEjercicio: ejercicioEditar.idEjercicio,
       nombreEjercicio: nombre,
-      peso: parseFloat(peso),
-      repeticiones: parseInt(repeticiones),
+      peso: pesoNum,
+      repeticiones: repsNum,
       grupoMuscular: ejercicioEditar.grupoMuscular,
+      historialPesos: nuevoHistorial,
     };
     guardarEjercicios(ejercicios.map((e) => (e.idEjercicio === actualizado.idEjercicio ? actualizado : e)));
     setShowEditModal(false);
@@ -96,6 +127,11 @@ export default function GrupoPage() {
   };
 
   const ejerciciosGrupo = ejercicios.filter((e) => e.grupoMuscular === grupo);
+  const ejerciciosFiltrados = busqueda.trim()
+    ? ejerciciosGrupo.filter((e) =>
+        e.nombreEjercicio.toLowerCase().includes(busqueda.toLowerCase())
+      )
+    : ejerciciosGrupo;
 
   return (
     <div className="flex flex-col min-h-screen bg-white dark:bg-black p-4 sm:p-6">
@@ -118,6 +154,45 @@ export default function GrupoPage() {
       </header>
 
       <main className="flex-1 max-w-4xl mx-auto w-full">
+        {ejerciciosGrupo.length > 0 && (
+          <div className="relative mb-6">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 24 24"
+              fill="currentColor"
+              className="w-5 h-5 absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400 dark:text-zinc-500"
+            >
+              <path
+                fillRule="evenodd"
+                d="M10.5 3.75a6.75 6.75 0 100 13.5 6.75 6.75 0 000-13.5zM2.25 10.5a8.25 8.25 0 1114.59 5.28l4.69 4.69a.75.75 0 11-1.06 1.06l-4.69-4.69A8.25 8.25 0 012.25 10.5z"
+                clipRule="evenodd"
+              />
+            </svg>
+            <input
+              type="text"
+              value={busqueda}
+              onChange={(e) => setBusqueda(e.target.value)}
+              placeholder="Buscar ejercicio..."
+              className="w-full pl-12 pr-4 py-3 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-black dark:text-white placeholder-zinc-400 dark:placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-zinc-400 dark:focus:ring-zinc-600 transition-all"
+            />
+            {busqueda && (
+              <button
+                onClick={() => setBusqueda("")}
+                className="absolute right-4 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300 transition-colors"
+                aria-label="Limpiar búsqueda"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5">
+                  <path
+                    fillRule="evenodd"
+                    d="M5.47 5.47a.75.75 0 011.06 0L12 10.94l5.47-5.47a.75.75 0 111.06 1.06L13.06 12l5.47 5.47a.75.75 0 11-1.06 1.06L12 13.06l-5.47 5.47a.75.75 0 01-1.06-1.06L10.94 12 5.47 6.53a.75.75 0 010-1.06z"
+                    clipRule="evenodd"
+                  />
+                </svg>
+              </button>
+            )}
+          </div>
+        )}
+
         {ejerciciosGrupo.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-20 text-center">
             <div className="w-20 h-20 rounded-full bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center mb-4">
@@ -129,12 +204,28 @@ export default function GrupoPage() {
               No hay ejercicios añadidos aún
             </p>
           </div>
+        ) : ejerciciosFiltrados.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-16 text-center">
+            <div className="w-16 h-16 rounded-full bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center mb-4">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-8 h-8 text-zinc-400 dark:text-zinc-500">
+                <path
+                  fillRule="evenodd"
+                  d="M10.5 3.75a6.75 6.75 0 100 13.5 6.75 6.75 0 000-13.5zM2.25 10.5a8.25 8.25 0 1114.59 5.28l4.69 4.69a.75.75 0 11-1.06 1.06l-4.69-4.69A8.25 8.25 0 012.25 10.5z"
+                  clipRule="evenodd"
+                />
+              </svg>
+            </div>
+            <p className="text-zinc-500 dark:text-zinc-400 text-sm">
+              No se encontraron ejercicios con ese nombre
+            </p>
+          </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {ejerciciosGrupo.map((ejercicio) => (
+            {ejerciciosFiltrados.map((ejercicio) => (
               <div
                 key={ejercicio.idEjercicio}
-                className="p-5 rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 hover:shadow-md transition-all duration-200"
+                className="p-5 rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 hover:shadow-md transition-all duration-200 cursor-pointer"
+                onClick={() => abrirHistorial(ejercicio)}
               >
                 <div className="flex justify-between items-start">
                   <div>
@@ -145,7 +236,7 @@ export default function GrupoPage() {
                       {ejercicio.peso} kg · {ejercicio.repeticiones} reps
                     </p>
                   </div>
-                  <div className="flex gap-2">
+                  <div className="flex gap-2" onClick={(e) => e.stopPropagation()}>
                     <button
                       onClick={() => abrirEditar(ejercicio)}
                       className="text-blue-500 hover:text-blue-700 transition-colors"
@@ -157,7 +248,7 @@ export default function GrupoPage() {
                       </svg>
                     </button>
                     <button
-                      onClick={() => confirmarEliminar(ejercicio.idEjercicio)}
+                      onClick={(e) => { e.stopPropagation(); confirmarEliminar(ejercicio.idEjercicio); }}
                       className="text-red-500 hover:text-red-700 transition-colors"
                       aria-label="Eliminar ejercicio"
                     >
@@ -182,6 +273,59 @@ export default function GrupoPage() {
           <path fillRule="evenodd" d="M12 3.75a.75.75 0 01.75.75v6.75h6.75a.75.75 0 010 1.5h-6.75v6.75a.75.75 0 01-1.5 0v-6.75H4.5a.75.75 0 010-1.5h6.75V4.5a.75.75 0 01.75-.75z" clipRule="evenodd" />
         </svg>
       </button>
+
+      {showHistoryModal && ejercicioHistorial && (
+        <div className="modal-overlay fixed inset-0 z-50 flex items-center justify-center">
+          <div className="absolute inset-0 bg-black/50" onClick={() => setShowHistoryModal(false)} />
+          <div className="modal-content relative bg-white dark:bg-zinc-900 rounded-2xl shadow-xl w-full border border-zinc-200 dark:border-zinc-800">
+            <div className="flex justify-between items-start mb-6">
+              <h2 className="text-2xl font-bold text-black dark:text-white">
+                {ejercicioHistorial.nombreEjercicio}
+              </h2>
+              <button
+                onClick={() => setShowHistoryModal(false)}
+                className="text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300 transition-colors"
+                aria-label="Cerrar"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-6 h-6">
+                  <path fillRule="evenodd" d="M5.47 5.47a.75.75 0 011.06 0L12 10.94l5.47-5.47a.75.75 0 111.06 1.06L13.06 12l5.47 5.47a.75.75 0 11-1.06 1.06L12 13.06l-5.47 5.47a.75.75 0 01-1.06-1.06L10.94 12 5.47 6.53a.75.75 0 010-1.06z" clipRule="evenodd" />
+                </svg>
+              </button>
+            </div>
+            <p className="text-sm text-zinc-500 dark:text-zinc-400 mb-6">
+              Historial de pesos
+            </p>
+            <div className="max-h-80 overflow-y-auto space-y-3">
+              {[...ejercicioHistorial.historialPesos].reverse().map((registro, index) => (
+                <div
+                  key={index}
+                  className="flex justify-between items-center p-4 rounded-xl bg-zinc-50 dark:bg-zinc-800 border border-zinc-100 dark:border-zinc-700"
+                >
+                  <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
+                    {new Date(registro.fecha + "T00:00:00").toLocaleDateString("es-ES", {
+                      year: "numeric",
+                      month: "long",
+                      day: "numeric",
+                    })}
+                  </span>
+                  <span className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
+                    {registro.peso} kg · {registro.repeticiones} reps
+                  </span>
+                </div>
+              ))}
+            </div>
+            <div className="modal-buttons mt-6">
+              <button
+                type="button"
+                onClick={() => setShowHistoryModal(false)}
+                className="flex-1 px-4 py-2 rounded-xl border border-zinc-200 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300 font-medium text-sm hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors"
+              >
+                Cerrar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {showEditModal && (
         <div className="modal-overlay fixed inset-0 z-50 flex items-center justify-center">
